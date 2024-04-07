@@ -1,6 +1,14 @@
 import { useState } from "react";
 import { db } from "./firebaseConnection";
-import { doc, setDoc, collection, addDoc, getDoc, getDocs } from "firebase/firestore";
+import {
+  doc,
+  setDoc,
+  collection,
+  addDoc,
+  getDoc,
+  getDocs,
+  updateDoc,
+} from "firebase/firestore";
 
 import "./app.css";
 
@@ -8,6 +16,7 @@ function App() {
   const [titulo, setTitulo] = useState("");
   const [autor, setAutor] = useState("");
   const [posts, setPosts] = useState([]);
+  const [id, setId] = useState("");
 
   const handleAdd = async () => {
     // await setDoc(doc(db, "posts", "12345"), {
@@ -49,21 +58,42 @@ function App() {
 
     const refPosts = collection(db, "posts");
 
-    await getDocs(refPosts).then((snapshot)=>{
-      let lista = [];
+    await getDocs(refPosts)
+      .then((snapshot) => {
+        let lista = [];
 
-      snapshot.forEach((post)=>{
-        lista.push({
-          id: post.id,
-          titulo: post.data().titulo,
-          autor: post.data().autor,
-        })
+        snapshot.forEach((post) => {
+          lista.push({
+            id: post.id,
+            titulo: post.data().titulo,
+            autor: post.data().autor,
+          });
+        });
+
+        setPosts(lista);
       })
+      .catch((err) => {
+        console.log("Erro encontrado" + err);
+      });
+  };
 
-      set
-    }).catch((err)=>{
-      console.log("Erro encontrado" + err);
+  const editarPost = async () => {
+    const ref = doc(db, "posts", id);
+
+    await updateDoc(ref, {
+      titulo: titulo,
+      autor: autor,
     })
+      .then(() => {
+        alert("Atualizado com sucesso");
+        setId("");
+        setTitulo("");
+        setAutor("");
+        handleGet();
+      })
+      .catch((err) => {
+        console.log("erro " + err);
+      });
   };
 
   return (
@@ -71,6 +101,16 @@ function App() {
       <h2>Firebase + react</h2>
 
       <div className="container">
+        <label>Id do post:</label>
+        <input
+          type="text"
+          placeholder="Digite o id do post"
+          value={id}
+          onChange={(e) => {
+            setId(e.target.value);
+          }}
+        />
+
         <label>Titulo:</label>
         <textarea
           type="text"
@@ -92,7 +132,18 @@ function App() {
         />
         <button onClick={handleAdd}>Cadastrar</button>
         <button onClick={handleGet}>Buscar Post</button>
+        <button onClick={editarPost}>Atualizar post</button>
       </div>
+      <ul>
+        {posts.map((post) => (
+          <li key={post.id}>
+            <strong>ID: {post.id}</strong> <br />
+            <span>Titulo: {post.titulo}</span> <br />
+            <span>Autor: {post.autor}</span> <br />
+            <br />
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
