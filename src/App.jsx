@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect} from "react";
 import { db } from "./firebaseConnection";
 import {
   doc,
@@ -8,6 +8,8 @@ import {
   getDoc,
   getDocs,
   updateDoc,
+  deleteDoc,
+  onSnapshot
 } from "firebase/firestore";
 
 import "./app.css";
@@ -17,6 +19,25 @@ function App() {
   const [autor, setAutor] = useState("");
   const [posts, setPosts] = useState([]);
   const [id, setId] = useState("");
+
+  useEffect(()=>{
+    const atualizandoPostEmTempoReal = async ()=>{
+      const atualiza = onSnapshot(collection(db, 'posts'), (snapshot)=>{
+        let listaPosts = [];
+        snapshot.forEach((doc)=>{
+          listaPosts.push({
+            id: doc.id,
+            titulo: doc.data().titulo,
+            autor: doc.data().autor,
+          });
+
+          setPosts(listaPosts)
+        })
+      })
+    }
+
+    atualizandoPostEmTempoReal();
+  }, [])
 
   const handleAdd = async () => {
     // await setDoc(doc(db, "posts", "12345"), {
@@ -89,13 +110,23 @@ function App() {
         setId("");
         setTitulo("");
         setAutor("");
-        handleGet();
       })
       .catch((err) => {
         console.log("erro " + err);
       });
   };
 
+  const excluirPost = async (id) => {
+    const ref = doc(db, "posts", id);
+
+    await deleteDoc(ref)
+      .then(() => {
+        alert('Removido com sucesso');
+      })
+      .catch((err) => {
+        alert("Erro para excluir: " + err);
+      });
+  };
   return (
     <div>
       <h2>Firebase + react</h2>
@@ -140,7 +171,7 @@ function App() {
             <strong>ID: {post.id}</strong> <br />
             <span>Titulo: {post.titulo}</span> <br />
             <span>Autor: {post.autor}</span> <br />
-            <br />
+            <button onClick={() => excluirPost(post.id)}>Excluir</button>
           </li>
         ))}
       </ul>
