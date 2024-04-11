@@ -1,5 +1,5 @@
-import { useState, useEffect} from "react";
-import { db } from "./firebaseConnection";
+import { useState, useEffect } from "react";
+import { db, auth } from "./firebaseConnection";
 import {
   doc,
   setDoc,
@@ -9,8 +9,10 @@ import {
   getDocs,
   updateDoc,
   deleteDoc,
-  onSnapshot
+  onSnapshot,
 } from "firebase/firestore";
+
+import { createUserWithEmailAndPassword } from "firebase/auth";
 
 import "./app.css";
 
@@ -19,25 +21,27 @@ function App() {
   const [autor, setAutor] = useState("");
   const [posts, setPosts] = useState([]);
   const [id, setId] = useState("");
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
 
-  useEffect(()=>{
-    const atualizandoPostEmTempoReal = async ()=>{
-      const atualiza = onSnapshot(collection(db, 'posts'), (snapshot)=>{
+  useEffect(() => {
+    const atualizandoPostEmTempoReal = async () => {
+      const atualiza = onSnapshot(collection(db, "posts"), (snapshot) => {
         let listaPosts = [];
-        snapshot.forEach((doc)=>{
+        snapshot.forEach((doc) => {
           listaPosts.push({
             id: doc.id,
             titulo: doc.data().titulo,
             autor: doc.data().autor,
           });
 
-          setPosts(listaPosts)
-        })
-      })
-    }
+          setPosts(listaPosts);
+        });
+      });
+    };
 
     atualizandoPostEmTempoReal();
-  }, [])
+  }, []);
 
   const handleAdd = async () => {
     // await setDoc(doc(db, "posts", "12345"), {
@@ -121,17 +125,54 @@ function App() {
 
     await deleteDoc(ref)
       .then(() => {
-        alert('Removido com sucesso');
+        alert("Removido com sucesso");
       })
       .catch((err) => {
         alert("Erro para excluir: " + err);
       });
   };
-  return (
-    <div>
-      <h2>Firebase + react</h2>
 
+  const novoUsuario = async () => {
+    await createUserWithEmailAndPassword(auth, email, senha) //serve para cadastrar email e senha, vc passa o auth e o email e senha que quer cadastrar
+      .then(() => {
+        console.log("Cadastro feito com sucesso");
+      })
+      .catch((err) => {
+        if (err.code === "auth/email-already-in-use") {
+          alert("Email já existente");
+        } else if (err.code === "auth/weak-password") {
+          alert("Senha muito fraca");
+        }
+      });
+  };
+  return (
+    <div className="app">
+      <h2>Firebase + react</h2>
       <div className="container">
+        <h2>Usuários</h2>
+        <label>Email</label>
+        <input
+          value={email}
+          onChange={(e) => {
+            setEmail(e.target.value);
+          }}
+          placeholder="Digite seu email"
+        />
+        <label>Senha</label>
+        <input
+          value={senha}
+          onChange={(e) => {
+            setSenha(e.target.value);
+          }}
+          placeholder="Informe sua senha"
+        />
+        <br />
+        <button onClick={novoUsuario}>Cadastrar</button>
+      </div>
+      <br /> <br />
+      <hr />
+      <div className="container">
+        <h2>Posts</h2>
         <label>Id do post:</label>
         <input
           type="text"
