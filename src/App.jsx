@@ -12,9 +12,15 @@ import {
   onSnapshot,
 } from "firebase/firestore";
 
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+} from "firebase/auth";
 
 import "./app.css";
+import { set } from "firebase/database";
 
 function App() {
   const [titulo, setTitulo] = useState("");
@@ -23,6 +29,8 @@ function App() {
   const [id, setId] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [user, setUser] = useState(false);
+  const [userDetail, setUserDetail] = useState({});
 
   useEffect(() => {
     const atualizandoPostEmTempoReal = async () => {
@@ -41,6 +49,29 @@ function App() {
     };
 
     atualizandoPostEmTempoReal();
+  }, []);
+
+  useEffect(() => {
+    const checarUser = async () => {
+      onAuthStateChanged(auth, (user) => {
+        //verifica a todo momento se o usuário está logado
+        if (user) {
+          //se tem usuário logado
+          console.log(user)
+          setUser(true);
+          setUserDetail({
+            uid: user.uid,
+            email: user.email,
+          });
+        } else {
+          //não tem ninguem logado
+          setUser(false);
+          setUserDetail({});
+        }
+      });
+    };
+
+    checarUser();
   }, []);
 
   const handleAdd = async () => {
@@ -136,6 +167,8 @@ function App() {
     await createUserWithEmailAndPassword(auth, email, senha) //serve para cadastrar email e senha, vc passa o auth e o email e senha que quer cadastrar
       .then(() => {
         console.log("Cadastro feito com sucesso");
+        setEmail("");
+        setSenha("");
       })
       .catch((err) => {
         if (err.code === "auth/email-already-in-use") {
@@ -145,9 +178,43 @@ function App() {
         }
       });
   };
+
+  const logarUsuario = async () => {
+    await signInWithEmailAndPassword(auth, email, senha) //vai conferir se no bd tem esse emeail e essa senha
+      .then((value) => {
+        console.log("Logado com sucesso!");
+        console.log(value.user);
+
+        setUserDetail({
+          uid: value.user.uid,
+          email: value.user.email,
+        });
+
+        setUser(true);
+
+        setEmail("");
+        setSenha("");
+      })
+      .catch((err) => {
+        console.log("Erro no login");
+      });
+  };
+
+  const deslogar = async () => {
+    await signOut(auth); //para deslogar, só passa a conexão de usuario;
+    setUser(false); //usuario não estar mais logado
+    setUserDetail({}); //pafra não ter mais informações dele
+  };
+
   return (
     <div className="app">
       <h2>Firebase + react</h2>
+      {user && (
+        <div>
+          Seja bem vindo(a) {userDetail.email}, (você está logado)
+          <button onClick={deslogar}>Deslogar</button>
+        </div>
+      )}
       <div className="container">
         <h2>Usuários</h2>
         <label>Email</label>
@@ -168,6 +235,7 @@ function App() {
         />
         <br />
         <button onClick={novoUsuario}>Cadastrar</button>
+        <button onClick={logarUsuario}>Logar</button>
       </div>
       <br /> <br />
       <hr />
